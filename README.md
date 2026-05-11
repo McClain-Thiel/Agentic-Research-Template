@@ -5,7 +5,7 @@ A [copier](https://copier.readthedocs.io/) template for ML research projects. Ru
 ## Use it
 
 ```bash
-uvx copier copy gh:mcclain-thiel/ml-research-template ./my-new-project
+uvx copier copy gh:mcclain-thiel/Agentic-Research-Template ./my-new-project --trust
 ```
 
 That's it. Copier prompts for a handful of variables (project name, package name, author, Python version, storage backend, W&B entity), writes the files, runs `uv sync`, initializes a git repo, and makes an initial commit. From there:

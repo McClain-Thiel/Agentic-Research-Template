@@ -1,0 +1,93 @@
+_subdirectory: template
+_min_copier_version: "9.0.0"
+_answers_file: .copier-answers.yml
+
+# Template every file's content (copier 9+ defaults to .jinja suffix only).
+_templates_suffix: ""
+
+# Custom Jinja delimiters so we don't collide with the justfile's {{var}} syntax.
+_envops:
+  variable_start_string: "[["
+  variable_end_string: "]]"
+  block_start_string: "[%"
+  block_end_string: "%]"
+  comment_start_string: "[#"
+  comment_end_string: "#]"
+  trim_blocks: true
+  lstrip_blocks: true
+  keep_trailing_newline: true
+
+_exclude:
+  - copier.yml
+  - .git
+  - .venv
+  - __pycache__
+  - "*.pyc"
+  - .pytest_cache
+  - .ruff_cache
+  - .DS_Store
+
+# Run after generation: install deps and initialize a fresh git history.
+_tasks:
+  - "uv sync"
+  - "git init -q"
+  - "git add -A"
+  - "git -c commit.gpgsign=false commit -q -m 'Initial commit from ml-research-template'"
+
+project_name:
+  type: str
+  help: Display name for the project (used in README, titles)
+  default: ML Research Project
+
+package_name:
+  type: str
+  help: Python package name (lowercase, underscores; importable identifier)
+  default: "[[ project_name | lower | replace(' ', '_') | replace('-', '_') ]]"
+  validator: >-
+    [% if not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %]
+    package_name must be a valid Python identifier: lowercase, start with a letter,
+    use only letters/digits/underscores.
+    [% endif %]
+
+project_slug:
+  type: str
+  help: Directory and PyPI-style slug (lowercase, hyphens allowed)
+  default: "[[ package_name | replace('_', '-') ]]"
+
+description:
+  type: str
+  help: One-line project description
+  default: An ML research project.
+
+author_name:
+  type: str
+  help: Author name
+  default: Your Name
+
+author_email:
+  type: str
+  help: Author email
+  default: you@example.com
+
+python_version:
+  type: str
+  help: Minimum Python version
+  default: "3.11"
+  choices:
+    - "3.11"
+    - "3.12"
+    - "3.13"
+
+storage_backend:
+  type: str
+  help: Default storage backend for run artifacts
+  default: local
+  choices:
+    - local
+    - s3
+    - gcs
+
+wandb_entity:
+  type: str
+  help: Default W&B entity (team or username, blank = use your default)
+  default: ""

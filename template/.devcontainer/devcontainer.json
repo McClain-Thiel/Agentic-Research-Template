@@ -1,0 +1,46 @@
+{
+  "name": "[[ package_name ]]",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "target": "dev"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "runArgs": [
+    "--gpus",
+    "all",
+    "--env-file",
+    ".env"
+  ],
+  "mounts": [
+    {
+      "type": "bind",
+      "source": "${localWorkspaceFolder}/.env",
+      "target": "/app/.env"
+    }
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "eamodio.gitlens",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/app/.venv/bin/python",
+        "python.analysis.typeCheckingMode": "strict",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.ruff": "explicit",
+          "source.organizeImports.ruff": "explicit"
+        }
+      }
+    }
+  },
+  "postCreateCommand": "uv sync --all-extras && uv run pre-commit install || true",
+  "remoteUser": "root"
+}

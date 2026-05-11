@@ -1,0 +1,63 @@
+[project]
+name = "[[ package_name ]]"
+version = "0.1.0"
+description = "[[ description ]]"
+readme = "README.md"
+requires-python = ">=[[ python_version ]]"
+authors = [
+    { name = "[[ author_name ]]", email = "[[ author_email ]]" },
+]
+dependencies = [
+    "torch",
+    "numpy",
+    "pyyaml",
+    "pydantic>=2",
+    "pydantic-settings",
+    "fsspec",
+    "wandb",
+    "huggingface-hub>=0.32.0",
+    "hf-xet",
+    "marimo",
+    "rich",
+    "loguru",
+[% if storage_backend == "s3" %]    "s3fs",
+[% endif %][% if storage_backend == "gcs" %]    "gcsfs",
+[% endif %]]
+
+[project.optional-dependencies]
+s3 = ["s3fs"]
+gcs = ["gcsfs"]
+
+[dependency-groups]
+dev = ["pytest", "pyright", "ruff", "pre-commit"]
+
+[project.scripts]
+[[ package_name ]] = "[[ package_name ]].train:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/[[ package_name ]]"]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+exclude = ["notebooks/*.py", "figures/scripts/*.py"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+pythonVersion = "[[ python_version ]]"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "strict"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-x -v"

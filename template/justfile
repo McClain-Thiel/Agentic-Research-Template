@@ -1,0 +1,147 @@
+# Variables read from environment with defaults
+PACKAGE_NAME := env_var_or_default("PACKAGE_NAME", "[[ package_name ]]")
+LAUNCHER := env_var_or_default("LAUNCHER", "local")
+ENV_FILE := env_var_or_default("ENV_FILE", ".env")
+STORAGE_BACKEND := env_var_or_default("STORAGE_BACKEND", "local")
+STORAGE_ROOT := env_var_or_default("STORAGE_ROOT", "./results")
+
+# Show all recipes
+@default:
+    just --list
+
+# Install dependencies via uv
+@install:
+    uv sync
+
+# Format and lint code
+@lint:
+    uv run ruff format .
+    uv run ruff check . --fix
+
+# Type check with pyright
+@typecheck:
+    uv run pyright src/
+
+# Run tests
+@test:
+    uv run pytest tests/
+
+# Run all checks: lint + typecheck + test
+@check: lint typecheck test
+
+# Train an experiment using the configured launcher
+@train experiment="base":
+    ./launchers/${LAUNCHER}.sh uv run python -m [[ package_name ]].train --experiment experiments/{{experiment}}
+
+# Train locally
+@train-local experiment="base":
+    ENV_FILE=.env.local just train {{experiment}}
+
+# Train on cluster
+@train-cluster experiment="base":
+    ENV_FILE=.env.cluster just train {{experiment}}
+
+# Train on AWS Batch
+@train-batch experiment="base":
+    ENV_FILE=.env.aws_batch just train {{experiment}}
+
+# Run an eval script against a run_id
+@eval script run_id:
+    uv run python {{script}} --run-id {{run_id}}
+
+# Run all eval scripts in evals/ against a run_id
+@eval-all run_id:
+    #!/usr/bin/env bash
+    for script in evals/*.py; do
+        echo "Running $script..."
+        just eval "$script" {{run_id}}
+    done
+
+# Launch a wandb sweep
+@sweep config="configs/sweep.yaml" n_agents="4":
+    #!/usr/bin/env bash
+    SWEEP_ID=$(wandb sweep {{config}} 2>&1 | grep "Sweep ID:" | awk '{print $3}')
+    echo "Sweep ID: $SWEEP_ID"
+    for i in $(seq 1 {{n_agents}}); do
+        wandb agent $SWEEP_ID &
+    done
+    wait
+
+# Run all marimo figure scripts headlessly
+@figures:
+    #!/usr/bin/env bash
+    for script in figures/scripts/*.py; do
+        echo "Running $script..."
+        uv run marimo run "$script" --no-show
+    done
+
+# Pull results from remote storage
+@pull-results:
+    uv run python -c "from [[ package_name ]].infra.storage import pull_results; pull_results()"
+
+# Push results to remote storage
+@push-results:
+    uv run python -c "from [[ package_name ]].infra.storage import sync_results; sync_results()"
+
+# Show status: running jobs, last registry entries, last journal entry
+@status:
+    #!/usr/bin/env bash
+    echo "=== Running Jobs ==="
+    if [ -d journal/runs ]; then
+        ls -lt journal/runs/*.yaml 2>/dev/null | head -5 | while read -r line; do
+            echo "$line"
+        done
+    fi
+    echo ""
+    echo "=== Last 3 Registry Entries ==="
+    head -20 experiments/registry.yaml 2>/dev/null || echo "No registry found"
+    echo ""
+    echo "=== Last Journal Entry ==="
+    ls -lt journal/runs/*.yaml 2>/dev/null | head -1 | awk '{print $NF}' | xargs -I {} sh -c 'echo "File: {}" && head -5 "$1"' _ {} 2>/dev/null || echo "No journal entries"
+
+# Open wandb dashboard URL
+@dashboard:
+    #!/usr/bin/env bash
+    source {{ENV_FILE}} 2>/dev/null || true
+    PROJECT=${WANDB_PROJECT:-[[ package_name ]]}
+    ENTITY=${WANDB_ENTITY:-""}
+    if [ -n "$ENTITY" ]; then
+        URL="https://wandb.ai/$ENTITY/$PROJECT"
+    else
+        URL="https://wandb.ai/$PROJECT"
+    fi
+    echo "Opening $URL"
+    xdg-open "$URL" 2>/dev/null || open "$URL" 2>/dev/null || echo "URL: $URL"
+
+# Pull config and checkpoint for a run and print reproduction instructions
+@reproduce run_id:
+    #!/usr/bin/env bash
+    echo "Pulling config and checkpoint for run {{run_id}}..."
+    uv run python -c "
+from [[ package_name ]].infra.storage import storage_path, fs
+from [[ package_name ]].analysis.results import get_run_config
+import os
+run_id = '{{run_id}}'
+config = get_run_config(run_id)
+print(f'Config retrieved for {run_id}')
+print(f'Run this command to reproduce:')
+print(f'  uv run python -m [[ package_name ]].train --config experiments/{run_id}/config.yaml')
+"
+
+# Clean build artifacts
+@clean:
+    rm -rf __pycache__ .pytest_cache dist/ *.egg-info .ruff_cache
+    find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find . -type f -name "*.pyc" -delete
+
+# Build package
+@build:
+    uv build
+
+# Build dev Docker image
+@docker-dev:
+    docker build --target dev -t [[ package_name ]]:dev .
+
+# Build train Docker image
+@docker-train:
+    docker build --target train -t [[ package_name ]]:train .

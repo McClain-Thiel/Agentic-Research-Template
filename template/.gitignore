@@ -1,0 +1,64 @@
+# Environment
+.env*
+!.env.example
+
+# Data and results (root-anchored so they don't shadow src/<pkg>/data/, etc.)
+/data/
+/results/
+/figures/output/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+*.egg
+pip-log.txt
+
+# Testing
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+
+# ML artifacts
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+wandb/
+
+# Journal
+/journal/runs/
+!/journal/runs/.gitkeep
+
+# Secrets baseline
+.secrets.baseline
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Ruff
+.ruff_cache/
+
+# Pyright
+pyrightconfig.json

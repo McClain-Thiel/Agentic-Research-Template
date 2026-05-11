@@ -1,4 +1,4 @@
-# ml-research-template
+# Agentic ML Research
 
 A [copier](https://copier.readthedocs.io/) template for ML research projects. Run it via `uvx` and get a working repo with sane defaults: typed config, experiment tracking, storage abstraction, tests, and a task runner — without the ceremony of cookiecutter clones or one-off setup scripts.
 
